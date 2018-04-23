@@ -6,6 +6,8 @@
  * Date: 2017/12/1
  * Time: 上午1:43
  */
+namespace Home;
+
 class RecoveryData
 {
     private $config;
@@ -180,7 +182,7 @@ class RecoveryData
         $redis = Fend_Redis::factory();
         $res = $redis->hashGet("aliyun_pull_log","{$startTime}_{$endTime}_{$this->model}",true);
         if(empty($res)) {
-            Fend_Log::info('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,'redis is empty!');
+            \EagleEye\Classes\Log::info('Pull_Ali_Log_Recovery_Db','redis is empty!');
             return false;
         }
         $checkInfo = $res['info'];
@@ -217,11 +219,11 @@ class RecoveryData
         $startTime = intval(empty($startTime) ? $endTime - 3600 : (is_numeric($startTime) ? $startTime : strtotime($startTime)));
         $res = $this->getDbLog($startTime, $endTime,$tableName);
         if($res === false) {
-            Fend_Log::info('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,'data too large,please connect to admin');
+            \EagleEye\Classes\Log::info('Pull_Ali_Log_Recovery_Db','data too large,please connect to admin');
             return [];
         }
         $this->judgeAliLog($startTime, $endTime, $logstore, $res,$tableName);
-        Fend_Log::alarm('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,$this->missLog);
+        \EagleEye\Classes\Log::alarm('Pull_Ali_Log_Recovery_Db',$this->missLog);
         echo 'Found '.count($this->missLog).' logs in aliyun not exist at mysql,wait second to insert into mysql'.PHP_EOL;
         $aliyun = $this->config['aliyun'];
         $interactionInfo = [];
@@ -338,7 +340,7 @@ class RecoveryData
                 }
                 else {
                     $row ['__reason__'] = 'this log has exist,wrong';
-                    Fend_Log::error('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,$row);
+                    \EagleEye\Classes\Log::error('Pull_Ali_Log_Recovery_Db',$row);
                 }
             }
         }
@@ -353,7 +355,7 @@ class RecoveryData
                     }
                     else {
                         $row ['__reason__'] = 'this log has exist,wrong';
-                        Fend_Log::error('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,$row);
+                        \EagleEye\Classes\Log::error('Pull_Ali_Log_Recovery_Db',$row);
                     }
                 }
             }
@@ -556,7 +558,7 @@ class RecoveryData
             return [];
 
         } catch (Exception $e) {
-            Fend_Log::exception('Pull_Ali_Log_Recovery_Db',__FILE__,__LINE__,'msg:' .$e->getMessage().' | backtrace:'.$e->getTraceAsString(). '| code:'.$e->getCode());
+            \EagleEye\Classes\Log::exception('Pull_Ali_Log_Recovery_Db','msg:' .$e->getMessage().' | backtrace:'.$e->getTraceAsString(). '| code:'.$e->getCode());
             return [];
         }
     }

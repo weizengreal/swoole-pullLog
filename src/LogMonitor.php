@@ -6,6 +6,12 @@
  * Date: 2017/11/8
  * Time: 上午10:35
  */
+namespace Home;
+use EagleEye\Core\LogAgent;
+use EagleEye\Classes\Log;
+use Home\Base\PullerManager;
+use Home\Base\ConsumerManager;
+use Home\Utils;
 
 class LogMonitor
 {
@@ -44,7 +50,7 @@ class LogMonitor
     {
         $this->config = $config;
         $this->serverName = $this->config['server']['name'];
-        $this->server = new swoole_http_server($this->config['server']['host'], $this->config['server']['port']);
+        $this->server = new \swoole_http_server($this->config['server']['host'], $this->config['server']['port']);
 
         // 初始化 swoole_table 用于 dump offset
         $cols = [
@@ -61,7 +67,7 @@ class LogMonitor
         ];
         // TODO:: memoryTable 路径问题
         $webroot = $GLOBALS['_cfg']['sys_rootdir'];
-        $this->memoryTable = new Fend_MemoryTable($cols,$webroot.$this->config['server']['recordpath'],$this->config['server']['tablesize']);
+        $this->memoryTable = new Utils\MemoryTable($cols,$webroot.$this->config['server']['recordpath'],$this->config['server']['tablesize']);
         $this->path = $webroot.$this->config['server']['channelpath'];
         $this->killSignal = 0;
         $this->consumers = [];
@@ -98,8 +104,8 @@ class LogMonitor
         $this->server->on('Shutdown', array($this, 'onShutdown'));
         $this->server->on('Start', array($this, 'onStart'));
 
-        Fend_LogAgent::setDumpLogMode(2);
-        Fend_LogAgent::setLogPath($this->config['server']['logpath']);
+        LogAgent::setDumpLogMode(2);
+        LogAgent::setLogPath($this->config['server']['logpath']);
 
         // 初始化 puller 和 consumer 进程，同时初始化对应的 channel
         $aliyunConf = $this->config['aliyun'];
@@ -111,29 +117,20 @@ class LogMonitor
 
         // 初始化 check process
         $this->server->addProcess(new \swoole_process(function () {
-            Fend_CliFunc::setProcessName($this->serverName,'check');
+            Utils\Helper::setProcessName($this->serverName,'check');
             $this->checkShards();
         }));
 
         // 初始化 monitor 函数
         $this->server->addProcess(new \swoole_process(function () {
-            Fend_CliFunc::setProcessName($this->serverName,'monitor');
+            Utils\Helper::setProcessName($this->serverName,'monitor');
             $this->monitor();
         }));
 
-        // Alarm 只有PC存在时才开启
-        if(in_array('doubleteacher_analytics_pc',$this->config['vaildStore'])) {
-            $this->server->addProcess(new \swoole_process(function () {
-                Fend_CliFunc::setProcessName($this->serverName,'alarm');
-                $alarm = new Alarm($this->config);
-                $alarm->scanData();
-            }));
-        }
-
         // 初始化日志存储 logAgent
         $this->server->addProcess(new \swoole_process(function () {
-            Fend_CliFunc::setProcessName($this->serverName,'logagent');
-            Fend_LogAgent::threadDumpLog();
+            Utils\Helper::setProcessName($this->serverName,'logagent');
+            LogAgent::threadDumpLog();
         }));
     }
 
@@ -146,13 +143,13 @@ class LogMonitor
         // 监控
         declare(ticks=1);
         pcntl_signal(SIGTERM, function ($signal) {
-            Fend_Log::info(LOG_PREFIX."Check_Process_Signal", __FILE__, __LINE__,
+            Log::info(LOG_PREFIX."Check_Process_Signal",
                 "check process will die...signal:" . $signal);
             $this->checkSignal = time();
         });
         $pid = getmypid();
         if(PIDMAX != -1 && $pid > PIDMAX) {
-            Fend_Log::error(LOG_PREFIX."Aliyun_Process_Manager", __FILE__, __LINE__,
+            Log::error(LOG_PREFIX."Aliyun_Process_Manager",
                 'get my pid error!getmypid value is:'.$pid);
             exit();
         }
@@ -182,9 +179,9 @@ class LogMonitor
         echo 'Monitor Start,now:'.date('Y-m-d G:i:s').PHP_EOL;
         declare(ticks=1);
         pcntl_signal(SIGTERM, function ($signal) {
-            Fend_Log::info(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+            Log::info(LOG_PREFIX."Monitor",
                 "monitor will kill the all process...signal:" . $signal);
-            Fend_CliFunc::setProcessName($this->serverName,'monitor_waiting');
+            Utils\Helper::setProcessName($this->serverName,'monitor_waiting');
             $this->killSignal = time();
         });
         pcntl_signal(SIGCHLD, array($this, "childWait"));
@@ -216,12 +213,12 @@ class LogMonitor
                 if (!$this->isConsumerProcess($pid) && !$this->isPullProcess($pid)) {
 
                     if(! $this->memoryTable->del($k)) {
-                        Fend_Log::error(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+                        Log::error(LOG_PREFIX."Monitor",
                             "delete memory table key error");
                     }
-                    $ret = swoole_process::kill($pid, SIGKILL);
+                    $ret = \swoole_process::kill($pid, SIGKILL);
 
-                    Fend_Log::exception(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+                    Log::exception(LOG_PREFIX."Monitor",
                         "process pid not Current Monitor create:" . $pid . " ret:" . $ret . " type:" . $v["remark"]);
                     continue;
                 }
@@ -231,12 +228,12 @@ class LogMonitor
                 if (time() - $timestamp > $this->config["server"]["processtimeout"]) {
 
                     if(! $this->memoryTable->del($k)) {
-                        Fend_Log::error(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+                        Log::error(LOG_PREFIX."Monitor",
                             "delete memory table key error");
                     }
-                    $ret = swoole_process::kill($pid, SIGKILL);
+                    $ret = \swoole_process::kill($pid, SIGKILL);
 
-                    Fend_Log::exception(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+                    Log::exception(LOG_PREFIX."Monitor",
                         "process heartBeat Timeout pid:" . $pid . " ret:" . $ret . " time:" . $timestamp . " type:" . $v["remark"]);
                     continue;
                 }
@@ -256,7 +253,7 @@ class LogMonitor
         // wait all children process
         $count = 0;
         while($count < 15){
-            while ($childInfo = swoole_process::wait(false)) {
+            while ($childInfo = \swoole_process::wait(false)) {
                 if ($childInfo){
 
                     //ali yun log pull
@@ -269,7 +266,7 @@ class LogMonitor
                     }
 
                     // warning
-                    Fend_Log::info(LOG_PREFIX."Monitor_Main_Pull", __FILE__, __LINE__,
+                    Log::info(LOG_PREFIX."Monitor_Main_Pull",
                         "process id:" . $childInfo["pid"] . " have been exit signal:" . $childInfo["signal"] . " code:" . $childInfo["code"]);
                 }
             }
@@ -282,9 +279,9 @@ class LogMonitor
                 if (time() - $timestamp > $this->config["server"]["processtimeout"]) {
 
                     $this->memoryTable->del($k);
-                    $ret = swoole_process::kill($pid, SIGKILL);
+                    $ret = \swoole_process::kill($pid, SIGKILL);
 
-                    Fend_Log::exception(LOG_PREFIX."Monitor", __FILE__, __LINE__,
+                    Log::exception(LOG_PREFIX."Monitor",
                         "process heartBeat Timeout pid:" . $pid . " ret:" . $ret . " time:" . $timestamp . " type:" . $v["remark"]);
                     continue;
                 }
@@ -321,7 +318,7 @@ class LogMonitor
             }
 
             // warning
-            Fend_Log::info(LOG_PREFIX."Monitor_Main_Pull", __FILE__, __LINE__,
+            Log::info(LOG_PREFIX."Monitor_Main_Pull",
                 "process id:" . $ret["pid"] . " have been exit signal:" . $ret["signal"] . " code:" . $ret["code"]);
             return true;
         }
@@ -347,14 +344,14 @@ class LogMonitor
             $consumerObg->killConsumers();
         }
 
-        Fend_Log::info(LOG_PREFIX.'Monitor_Handle_Kill',__FILE__,__LINE__,'receive timestamp:'.(string)$this->killSignal);
+        Log::info(LOG_PREFIX.'Monitor_Handle_Kill','receive timestamp:'.(string)$this->killSignal);
 
         return;
     }
 
     private function initChannel() {
         // 处理之前时间的某个 channel 日志的 dump
-        Fend_Log::info(LOG_PREFIX."Server_Init", __FILE__, __LINE__,"Log Monitor Recovery Old Records...,Wait Seconds!");
+        Log::info(LOG_PREFIX."Server_Init", "Log Monitor Recovery Old Records...,Wait Seconds!");
         $fileArr = [];
         foreach ($this->logQueues as $storeIndex => $queue) {
             $fileName = $this->path.$storeIndex.'.db';
@@ -367,7 +364,7 @@ class LogMonitor
                 $logStr = fgets($handle);
                 $logs = json_decode($logStr , true);
                 if(empty($logs)) {
-                    Fend_Log::error(LOG_PREFIX."Server_Init", __FILE__, __LINE__,
+                    Log::error(LOG_PREFIX."Server_Init",
                         "logStr json decode error!logStr:".$logStr);
                     continue ;
                 }
@@ -376,7 +373,7 @@ class LogMonitor
                     if(!$ret) {
                         // 留个坑，如果多次出现闪退，或者在下一次启动时改小了channel的大小等可能会造成数据量过大！
                         // 理论上是不可能失败，如果失败记录错误日志并退出，不允许启动
-                        Fend_Log::error(LOG_PREFIX."Server_Init", __FILE__, __LINE__,
+                        Log::error(LOG_PREFIX."Server_Init",
                             "swoole channel memory too small，");
                         exit;
                     }
@@ -394,13 +391,13 @@ class LogMonitor
     private function dumpChannel() {
         $stats = [];
         /**
-         * @var swoole_channel $channelItem
+         * @var \swoole_channel $channelItem
          */
         foreach ($this->logQueues as $index => $channelItem) {
             $stats[$index] = $channelItem->stats();
         }
         $stats['__reason__'] = 'Log Monitor Dump logs...,Wait Seconds!';
-        Fend_Log::info(LOG_PREFIX."Server_Stoping", __FILE__, __LINE__,$stats);
+        Log::info(LOG_PREFIX."Server_Stoping", $stats);
         // 遍历并 dump 所有数据，一个 chnnel 内存为100MB，大约可容纳10W条数据，一次 dump DUMPCOUNT（10000条）数据
         $count = 0;
         foreach ($this->logQueues as $storeIndex => $channelItem) {
@@ -475,7 +472,7 @@ class LogMonitor
 
     public function onManagerStart(\swoole_server $serv)
     {
-        Fend_CliFunc::setProcessName($this->serverName, 'manager');
+        Utils\Helper::setProcessName($this->serverName, 'manager');
     }
 
     public function onManagerStop(\swoole_server $serv)
@@ -485,7 +482,7 @@ class LogMonitor
 
     public function onStart(\swoole_server $server)
     {
-        Fend_CliFunc::setProcessName($this->serverName, "master");
+        Utils\Helper::setProcessName($this->serverName, "master");
         echo "MasterPid = $server->master_pid".PHP_EOL;
         echo "ManagerPid = $server->manager_pid".PHP_EOL;
         echo "Swoole version is [" . SWOOLE_VERSION . "]".PHP_EOL;
@@ -516,7 +513,7 @@ class LogMonitor
             $response->end(json_encode([
                 "server" => $this->server->stats(),
                 "logqueue" => $logQueueList,
-                "syslogqueue" => Fend_LogAgent::getQueueStat(),
+                "syslogqueue" => LogAgent::getQueueStat(),
                 "table" => $table,
             ]));
             return;
@@ -538,15 +535,15 @@ class LogMonitor
             return;
         }
 
-        // 方便调试  TODO
+        // TODO  方便调试
         if($this->config['server']['name'] != 'pull_log_dev') {
-            if(! Fend_CliFunc::checkToken($params,$GLOBALS['_cfg']['aliyun_salt'])) {
-                $response->end(Fend_CliFunc::buildResponseResult(8,'you don\'t have permission'));
+            if(! Utils\Helper::checkToken($params,$this->config['server']['aliyun_salt'])) {
+                $response->end(Utils\Helper::buildResponseResult(8,'you don\'t have permission'));
                 return ;
             }
         }
 
-        $response->end('hello world,I love it!you know for data!');
+        $response->end("hello,I'm weizengreal!");
     }
 
 
@@ -554,21 +551,12 @@ class LogMonitor
     {
         if (!$server->taskworker) {
             //worker
-            Fend_CliFunc::setProcessName($this->serverName, "worker");
+            Utils\Helper::setProcessName($this->serverName, "worker");
         } else {
             //task
-            Fend_CliFunc::setProcessName($this->serverName, "task");
+            Utils\Helper::setProcessName($this->serverName, "task");
         }
     }
-
-//    public function onTask(\swoole_server $server, $task_id, $from_id, $data) {
-//
-//    }
-//
-//    public function onFinish(\swoole_server $server, $task_id, $data) {
-//
-//    }
-
 
     public function onWorkerError(\swoole_server $server, $worker_id, $worker_pid, $exit_code)
     {
@@ -584,54 +572,10 @@ class LogMonitor
         $this->dumpTableRecord();
 
         // dump logAgent 中的日志
-        Fend_LogAgent::flushChannel();
+        LogAgent::flushChannel();
 
         echo 'Server Shutdown,Master Exit!now:'.date('Y-m-d G:i:s').PHP_EOL;
     }
 
 
 }
-
-
-function serverHandleFatal()
-{
-    $error = error_get_last();
-    if (isset($error['type'])) {
-        switch ($error['type']) {
-            case E_ERROR :
-            case E_PARSE :
-            case E_CORE_ERROR :
-            case E_COMPILE_ERROR :
-                $message = $error['message'];
-                $file = $error['file'];
-                $line = $error['line'];
-                $log = "$message ($file:$line)\nStack trace:\n";
-                $trace = debug_backtrace();
-                foreach ($trace as $i => $t) {
-                    if (!isset($t['file'])) {
-                        $t['file'] = 'unknown';
-                    }
-                    if (!isset($t['line'])) {
-                        $t['line'] = 0;
-                    }
-                    if (!isset($t['function'])) {
-                        $t['function'] = 'unknown';
-                    }
-                    $log .= "#$i {$t['file']}({$t['line']}): ";
-                    if (isset($t['object']) and is_object($t['object'])) {
-                        $log .= get_class($t['object']) . '->';
-                    }
-                    $log .= "{$t['function']}()\n";
-                }
-                if (isset($_SERVER['REQUEST_URI'])) {
-                    $log .= '[QUERY] ' . $_SERVER['REQUEST_URI'];
-                }
-                Fend_log::exception(LOG_PREFIX."End", __FILE__, __LINE__, "pid:" . getmypid() . " " . $log);
-                break;
-            default:
-                break;
-        }
-    }
-}
-
-register_shutdown_function('serverHandleFatal');
