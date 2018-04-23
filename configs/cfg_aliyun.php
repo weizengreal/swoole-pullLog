@@ -51,8 +51,8 @@ return [
         ],
     ],
     'defaultConf' => [
-//         "endpoint" => 'cn-beijing.log.aliyuncs.com',  // 阿里云内网地址
-        "endpoint"        => 'cn-beijing-intranet.log.aliyuncs.com',  // 阿里云外网地址
+         "endpoint" => 'cn-beijing.log.aliyuncs.com',  // 阿里云外网地址
+//        "endpoint"        => 'cn-beijing-intranet.log.aliyuncs.com',  // 阿里云内网地址
         // 阿里云日志拉取内网域名
         "accessKeyId"     => 'aliyunLog_accessKeyId',
         "accessKey"       => 'aliyunLog_accessKey',
