@@ -45,8 +45,8 @@ return [
     ],
     'aliyun'      => [
         'doubleteacher_js_eagleeye'          => [
-            'pullClass'     => 'OnlineJs',
-            'consumeClass'  => 'EagleEyeJs',
+            'pullClass'     => '\Home\Pull\OnlineJs',
+            'consumeClass'  => '\Home\Consume\EagleEyeJs',
             'consumerCount' => 4,
         ],
     ],
@@ -62,9 +62,6 @@ return [
         'channelSize'     => 1024 * 1024 * 100,
     ],
     'vaildStore'  => [
-        'doubleteacher_analytics_pc_debug',
-        'doubleteacher_analytics_java_debug',
-        'mirror_analytics_debug',
         'doubleteacher_js_eagleeye',
     ],
 ];
