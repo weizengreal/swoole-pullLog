@@ -1,0 +1,49 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "5a9c14444382ce2285ce7e937530e0e6",
+    "packages": [
+        {
+            "name": "xcl3721/eagleeye",
+            "version": "0.2.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/xcl3721/eagleeye.git",
+                "reference": "f2299da904fa0f392c0351eafac06df055936e40"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/xcl3721/eagleeye/zipball/f2299da904fa0f392c0351eafac06df055936e40",
+                "reference": "f2299da904fa0f392c0351eafac06df055936e40",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "project",
+            "autoload": {
+                "psr-4": {
+                    "EagleEye\\Core\\": "src/core",
+                    "EagleEye\\Classes\\": "src/classes"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "EagleEye Log",
+            "time": "2018-03-20T04:15:18+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": []
+}
