@@ -7,6 +7,8 @@
  * Des：这里应该是一个最低级的工作进程
  */
 
+namespace Home\Base;
+
 abstract class ProcessManager
 {
     protected $sigterm;
@@ -48,7 +50,7 @@ abstract class ProcessManager
         declare(ticks=1);
         $pid = getmypid();
         if(PIDMAX != -1 && $pid > PIDMAX) {
-            Fend_Log::error(LOG_PREFIX."Aliyun_Process_Manager", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::error(LOG_PREFIX."Aliyun_Process_Manager",
                 'get my pid error!getmypid value is:'.$pid);
             exit();
         }

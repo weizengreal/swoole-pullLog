@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Created by PhpStorm.
  * User: weizeng
@@ -7,17 +6,25 @@
  * Time: 上午10:31
  * des：完成信号处理，日志拉取到指定队列
  */
+namespace Home\Base;
+use Home\Utils\Helper;
 
 class PullerManager extends ProcessManager
 {
     public $configs;
 
+    /**
+     * @var \Home\Utils\MemoryTable $table
+     */
     public $table;
 
     public $pullOption;
 
     public $logstore;
 
+    /**
+     * @var \swoole_channel $logQueue
+     */
     public $logQueue;
 
     private $shardList;
@@ -74,21 +81,21 @@ class PullerManager extends ProcessManager
         $this->reflushTime($pid);
         try {
             //init
-            $client = new Aliyun_Log_Client($this->pullOption["customConf"]["endpoint"], $this->pullOption["customConf"]["accessKeyId"],
+            $client = new \Aliyun_Log_Client($this->pullOption["customConf"]["endpoint"], $this->pullOption["customConf"]["accessKeyId"],
                 $this->pullOption["customConf"]["accessKey"], $this->pullOption["customConf"]["token"]);
 
-            $listShardRequest = new Aliyun_Log_Models_ListShardsRequest($this->pullOption["customConf"]["project"], $this->logstore);
+            $listShardRequest = new \Aliyun_Log_Models_ListShardsRequest($this->pullOption["customConf"]["project"], $this->logstore);
             $shardArray = $client->listShards($listShardRequest);
             $shardIdArray = $shardArray->getShardIds();
             $this->reflushTime($pid);
 
-            Fend_Log::debug( LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::debug( LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore.";get Shard List:" . implode(",", $shardIdArray));
 
             //alarm when nothing get from aliyun
             if (count($shardIdArray) == 0) {
                 //alarm
-                Fend_Log::error( LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+                \EagleEye\Classes\Log::error( LOG_PREFIX."Aliyun_Monitor",
                     'At pull_'.$this->logstore.";get Shard List Fail...");
                 return;
             }
@@ -99,9 +106,9 @@ class PullerManager extends ProcessManager
                     'remark' => $shardId,
                 ]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 //            echo $e->getPrevious().PHP_EOL;
-            Fend_Log::error( LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::error( LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore.";get Shard List Fail...,exception msg:".$e->getMessage());
             return;
         }
@@ -115,14 +122,14 @@ class PullerManager extends ProcessManager
         // 取得来源于 check 进程刷新的 shard 列表
         $shards = $this->table->getListByPrefix(SHARDPREFIX.$this->logstore);
         if(count($shards) == 0) {
-            Fend_Log::alarm(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::alarm(LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore." | shard list empty!");
             return ;
         }
         $shardIdArray = [];
         foreach ($shards as $shardItem) {
             if(time() - $shardItem['timestamp'] > $this->configs['server']['processtimeout']) {
-                Fend_Log::alarm(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+                \EagleEye\Classes\Log::alarm(LOG_PREFIX."Aliyun_Monitor",
                     'At pull_'.$this->logstore." | shardList ten seconds without refresh");
                 return ;
             }
@@ -133,7 +140,7 @@ class PullerManager extends ProcessManager
 
             $this->shardList = $shardIdArray;
 
-            Fend_Log::info( LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::info( LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore.";ShardID changed respawn for balance..");
 
             $this->restartAll();
@@ -143,9 +150,9 @@ class PullerManager extends ProcessManager
         //make sure all ali yun pull log process started
         foreach ($this->shardList as $shardId) {
             $pid = array_search($shardId,$this->processList);
-            if (!$pid || Fend_CliFunc::ifrun($pid) == 0) {
+            if (!$pid || Helper::ifrun($pid) == 0) {
                 //alarm
-                Fend_Log::info(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+                \EagleEye\Classes\Log::info(LOG_PREFIX."Aliyun_Monitor",
                     'At pull_'.$this->logstore.";pull log process:" . $shardId . " not run .. restart");
 
                 $this->restartAll();
@@ -158,12 +165,12 @@ class PullerManager extends ProcessManager
     {
         $pid = $param['myPid'];
         $shardId = $param['shardId'];
-        Fend_CliFunc::setProcessName($this->configs['server']['name'],'pull_'.$this->logstore.$shardId);
+        Helper::setProcessName($this->configs['server']['name'],'pull_'.$this->logstore.$shardId);
 
         $shardOffset = $this->table->getField($this->logstore . $shardId,'timestamp');
 //        $shardOffset = $shardArr['timestamp'];
         if(!$shardOffset) {
-            Fend_Log::info(LOG_PREFIX.'Puller_No_Time',__FILE__,__LINE__,'没有找到recordTable的时间戳，默认使用四小时前的时间戳开始拉取');
+            \EagleEye\Classes\Log::info(LOG_PREFIX.'Puller_No_Time','没有找到recordTable的时间戳，默认使用四小时前的时间戳开始拉取');
             $shardOffset = time() - 3600 * 4;
             $this->reflushShardTime($shardId,$shardOffset);
         }
@@ -173,25 +180,25 @@ class PullerManager extends ProcessManager
         }
         $this->reflushTime($pid);
 
-        $this->client = new Aliyun_Log_Client($this->pullOption["customConf"]["endpoint"], $this->pullOption["customConf"]["accessKeyId"],
+        $this->client = new \Aliyun_Log_Client($this->pullOption["customConf"]["endpoint"], $this->pullOption["customConf"]["accessKeyId"],
             $this->pullOption["customConf"]["accessKey"], $this->pullOption["customConf"]["token"]);
 
         try {
-            $listShardRequest = new Aliyun_Log_Models_ListShardsRequest($this->pullOption["customConf"]["project"], $this->logstore);
+            $listShardRequest = new \Aliyun_Log_Models_ListShardsRequest($this->pullOption["customConf"]["project"], $this->logstore);
             $listShardResponse = $this->client->listShards($listShardRequest);
             foreach ($listShardResponse->getShardIds() as $_shardId) {
                 //ignore the not same shardid
                 if ($_shardId != $shardId) {
                     continue;
                 }
-                $getCursorRequest = new Aliyun_Log_Models_GetCursorRequest($this->pullOption["customConf"]["project"], $this->logstore, $_shardId, null, $shardOffset);
+                $getCursorRequest = new \Aliyun_Log_Models_GetCursorRequest($this->pullOption["customConf"]["project"], $this->logstore, $_shardId, null, $shardOffset);
                 $response = $this->client->getCursor($getCursorRequest);
                 // 初始化光标所在位置
                 $this->cursor = $response->getCursor();
                 $this->reflushTime($pid);
             }//foreach shard
-        } catch (Exception $e) {
-            Fend_Log::exception(LOG_PREFIX."Puller_StartAction", __FILE__, __LINE__,
+        } catch (\Exception $e) {
+            \EagleEye\Classes\Log::exception(LOG_PREFIX."Puller_StartAction",
                 'At pull_'.$this->logstore.";Curl Exception:" . $e->getCode() . " | " . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
             $this->permit = false;
         }
@@ -211,7 +218,7 @@ class PullerManager extends ProcessManager
         $pid = $param['myPid'];
         $shardId = $param['shardId'];
         $shardOffset = $this->table->getField($this->logstore . $shardId,'timestamp');
-        $batchGetDataRequest = new Aliyun_Log_Models_BatchGetLogsRequest($this->pullOption["customConf"]["project"], $this->logstore, $shardId, MAXPULLCOUNT, $this->cursor);
+        $batchGetDataRequest = new \Aliyun_Log_Models_BatchGetLogsRequest($this->pullOption["customConf"]["project"], $this->logstore, $shardId, MAXPULLCOUNT, $this->cursor);
         $response = $this->client->batchGetLogs($batchGetDataRequest);
         // curl 成功了，更新时间戳保证进程稳定，极限条件
         $this->reflushTime($pid);
@@ -221,7 +228,7 @@ class PullerManager extends ProcessManager
         if ($this->cursor == $response->getNextCursor()) {
             $this->reflushTime($pid);
             //debug info
-            Fend_Log::debug(LOG_PREFIX."Pull_Process", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::debug(LOG_PREFIX."Pull_Process",
                 'At pull_'.$this->logstore.";Arrive Fetch End..." . $shardId . " offset:" . $shardOffset . " date:" . date("Y-m-d H:i:s", $shardOffset));
             sleep(1);
         }
@@ -245,16 +252,13 @@ class PullerManager extends ProcessManager
                 if ($this->puller->filter($logInfo)) {
                     while (!$this->logQueue->push($logInfo)) {
                         // if push fail, alarm
-                        Fend_Log::alarm(LOG_PREFIX."Pull_Process", __FILE__, __LINE__,
+                        \EagleEye\Classes\Log::alarm(LOG_PREFIX."Pull_Process",
                             'At pull_'.$this->logstore.";Log Queue is Full...");
 
                         // 设置心跳到十秒之后
                         $this->reflushTime($pid,time() + $this->configs['server']['processtimeout']);
-                        sleep(10);
+                        sleep($this->configs['server']['processtimeout']);
                     }
-//                    if(isset($logInfo['event_name'])) {
-//                        echo 'push:aliTime:'.date("Y-m-d H:i:s",$logInfo['ali_time']).'|push into channel,shard id:'.$shardId.'|event_name:'.$logInfo['event_name'].PHP_EOL;
-//                    }
                 }
 
                 // handle this log successful，update last log time
@@ -270,7 +274,7 @@ class PullerManager extends ProcessManager
     public function stopAction($param)
     {
         $param['msg'] = 'puller process finish';
-        Fend_Log::info(LOG_PREFIX.'Puller_Finish',__FILE__,__LINE__,$param);
+        \EagleEye\Classes\Log::info(LOG_PREFIX.'Puller_Finish',$param);
     }
 
     /*
@@ -284,7 +288,7 @@ class PullerManager extends ProcessManager
         }
         $check = parent::check();
         if(!$check) {
-            Fend_Log::info(LOG_PREFIX.'Puller_Finish',__FILE__,__LINE__,'direct finish, killTime:'.time());
+            \EagleEye\Classes\Log::info(LOG_PREFIX.'Puller_Finish','direct finish, killTime:'.time());
             return false;
         }
         return true;
@@ -298,7 +302,7 @@ class PullerManager extends ProcessManager
 
             unset($this->processList[$signal["pid"]]);
 
-            Fend_Log::info(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::info(LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore.";process id:" . $signal["pid"] . " have been exit signal:" . $signal["signal"] . " code:" . $signal["code"]);
         }
     }
@@ -307,7 +311,7 @@ class PullerManager extends ProcessManager
      * 重启全部进程函数
      * */
     private function restartAll() {
-        Fend_Log::info( LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+        \EagleEye\Classes\Log::info( LOG_PREFIX."Aliyun_Monitor",
             'At pull_'.$this->logstore.";Restarting the Pull Log Process...");
         $this->killPullers();
         $this->startPullers();
@@ -325,11 +329,11 @@ class PullerManager extends ProcessManager
                 // 记录下当前进程信息到 swoole_table
                 $this->reflushTime($pid);
                 $this->processList[$pid] = $shardID;
-                Fend_Log::info(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+                \EagleEye\Classes\Log::info(LOG_PREFIX."Aliyun_Monitor",
                     'At pull_'.$this->logstore.",Start Puller Log Process  Pid:" . $pid);
             }
             else {
-                Fend_Log::alarm(LOG_PREFIX.'Aliyun_Monitor_Error',__FILE__,__LINE__,'申请一个进程失败');
+                \EagleEye\Classes\Log::alarm(LOG_PREFIX.'Aliyun_Monitor_Error','申请一个进程失败');
             }
         }
     }
@@ -341,7 +345,7 @@ class PullerManager extends ProcessManager
         foreach ($this->processList as $processid => $shardId) {
             // 使用 kill -15，考虑依据是 monitor 进程的心跳检测执行 kill -9 即可，这里作为收到 kill all process 时的处理不需要强制 kill
             $ret = \swoole_process::kill($processid);
-            Fend_Log::info(LOG_PREFIX."Aliyun_Monitor", __FILE__, __LINE__,
+            \EagleEye\Classes\Log::info(LOG_PREFIX."Aliyun_Monitor",
                 'At pull_'.$this->logstore.";kill the pid:" . $processid . " ret:" . $ret);
         }
     }
@@ -379,11 +383,4 @@ class PullerManager extends ProcessManager
             "remark" => $remark
         ]);
     }
-
-
-    /*
-     * 过滤逻辑
-     * */
-//    abstract function filter($log) ;
-
 }
