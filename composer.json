@@ -1,5 +1,8 @@
 {
     "require": {
         "xcl3721/eagleeye": "^0.2.4"
+    },
+    "require-dev": {
+        "eaglewu/swoole-ide-helper": "dev-master"
     }
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "5a9c14444382ce2285ce7e937530e0e6",
+    "content-hash": "5167f321ba3be57c6cc3866fabd84a5c",
     "packages": [
         {
             "name": "xcl3721/eagleeye",
@@ -38,10 +38,43 @@
             "time": "2018-03-20T04:15:18+00:00"
         }
     ],
-    "packages-dev": [],
+    "packages-dev": [
+        {
+            "name": "eaglewu/swoole-ide-helper",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/eaglewu/swoole-ide-helper.git",
+                "reference": "a36f8b10e322adb19a9299a5708a972208953007"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/eaglewu/swoole-ide-helper/zipball/a36f8b10e322adb19a9299a5708a972208953007",
+                "reference": "a36f8b10e322adb19a9299a5708a972208953007",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Swoole\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "authors": [
+                {
+                    "name": "eagle",
+                    "email": "eaglewudi@gmail.com"
+                }
+            ],
+            "description": "Swoole 在IDE下自动识别类、函数、宏，自动补全函数名",
+            "time": "2018-04-08T01:53:39+00:00"
+        }
+    ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "eaglewu/swoole-ide-helper": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],
