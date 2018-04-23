@@ -1,7 +1,8 @@
 /.idea/
 /cache/
 /config/
-/vendor/
+/vendor/*
+!/vendor/aliyun_log_sdk
 .DS_Store
 /server/baseserver/log/
 *.pid
