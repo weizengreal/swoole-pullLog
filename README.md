@@ -5,9 +5,9 @@
 swoole-pullLog 是一个基于 swoole、阿里云日志服务的消息同步微服务，用于多语言、多业务端之间的解耦；
 多个端上传日志到阿里云日志服务之后可以该服务轻松进行数据落地。
 
-问题提交：[issue](https://github.com/weizengreal/swoole-pullLog/issues)
+问题提交：[Issue](https://github.com/weizengreal/swoole-pullLog/issues)
 
-协议支持：Apache-2.0
+协议支持：[Apache-2.0](https://github.com/weizengreal/swoole-pullLog/blob/master/LICENSE)
 
 ## 设计思路(Design)
 
