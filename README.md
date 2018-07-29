@@ -11,9 +11,9 @@ swoole-pullLog 是一个基于 swoole、阿里云日志服务的消息同步微�
 
 ## 设计思路(Design)
 
-> * [系统架构设计](http://blog.woai662.net/?p=39)
-> * [日志拉取demo实现](http://blog.woai662.net/?p=41)
-> * [完成版实现简介](http://blog.woai662.net/?p=43)
+> * [系统架构设计](https://weizeng.gitbook.io/blog/php/swoole/ji-yu-swoole-de-duo-jin-cheng-xiao-xi-tong-bu-wei-fu-wu-1-xu-qiu-jie-shao-he-xi-tong-jia-gou-she-ji)
+> * [日志拉取demo实现](https://weizeng.gitbook.io/blog/php/swoole/ji-yu-swoole-de-duo-jin-cheng-xiao-xi-tong-bu-wei-fu-wu-2-a-li-yun-ri-zhi-la-qu-shi-xian-yu-shu-ju-c)
+> * [完成版实现简介](https://weizeng.gitbook.io/blog/php/swoole/ji-yu-swoole-de-duo-jin-cheng-xiao-xi-tong-bu-wei-fu-wu-3-shi-xian-swoole-duo-jin-cheng-xiao-xi-tong)
 
 
 ## 功能支持(Function)
