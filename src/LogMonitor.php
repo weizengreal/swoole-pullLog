@@ -66,9 +66,8 @@ class LogMonitor
             ],
         ];
         // TODO:: memoryTable 路径问题
-        $webroot = $GLOBALS['_cfg']['sys_rootdir'];
-        $this->memoryTable = new Utils\MemoryTable($cols,$webroot.$this->config['server']['recordpath'],$this->config['server']['tablesize']);
-        $this->path = $webroot.$this->config['server']['channelpath'];
+        $this->memoryTable = new Utils\MemoryTable($cols,$this->config['server']['recordpath'],$this->config['server']['tablesize']);
+        $this->path = $this->config['server']['channelpath'];
         $this->killSignal = 0;
         $this->consumers = [];
         $this->pullers = [];
